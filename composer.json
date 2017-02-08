@@ -1,0 +1,29 @@
+{
+  "name": "curator/makeup",
+  "type": "project",
+  "description": "Makes Curator update package files from directory structures of source trees and metadata.",
+  "minimum-stability": "stable",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Mike Baynton",
+      "email": "mike@mbaynton.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "curator\\makeup\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=7.1.0",
+    "yetanotherape/diff-match-patch": "dev-dev-bugfix",
+    "ulrichsg/getopt-php": "^2.3"
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/curator-wik/diff-match-patch"
+    }
+  ]
+}
