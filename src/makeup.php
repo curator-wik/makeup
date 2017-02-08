@@ -48,3 +48,4 @@ $util = new Util();
 
 $util->validateDirectory();
 
+$releases = $util->getReleaseList();
