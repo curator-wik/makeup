@@ -16,7 +16,7 @@ $opts = new Getopt([
     ->setDescription('Print this help text and exit.')
 ]);
 
-$opts->setBanner("Makes a Curator update package from a directory of source trees and metedata.\n");
+$opts->setBanner("Makes a Curator update package from a directory of source trees and metadata.\n");
 
 try {
   $opts->parse();
@@ -46,6 +46,30 @@ if ($opts['d']) {
 
 $util = new Util();
 
-$util->validateDirectory();
+list($application, $component) = $util->validateDirectory();
+
+echo "Directory structure looks ok.\n";
 
 $releases = $util->getReleaseList();
+$phar_filename = sprintf("%s_%s>%s.cpkg.tar",
+  preg_replace('/\s/', '', $application . ($component !== '' ? "_$component" : '')),
+  $releases[0],
+  end($releases)
+);
+reset($releases);
+
+echo "Generating $phar_filename...\n";
+
+$phar = new \PharData(getcwd() . DIRECTORY_SEPARATOR . $phar_filename);
+$engine = new PackageGenerator($phar);
+$engine->installMetadata();
+
+while (count($releases) >= 2) {
+  $upgrade_from = $releases[0];
+  $upgrade_to = $releases[1];
+
+  echo "Building $upgrade_from → $upgrade_to...\n";
+  $engine->generatePayload($upgrade_from, $upgrade_to);
+
+  array_shift($releases);
+}
