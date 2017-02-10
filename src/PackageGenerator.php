@@ -34,11 +34,12 @@ class PackageGenerator {
     $prefix = "payload/$to_version";
     $this->phar->addEmptyDir("payload/$to_version");
 
-    $buffers = $this->processTreeDirectory($from_version, $to_version, '', []);
+    $buffers = [];
+    $buffers = $this->processTreeDirectory($from_version, $to_version, '', $buffers);
     if (! empty($buffers['deleted_files'])) {
       $this->phar->addFromString(
         "payload/$to_version/deleted_files",
-        implode("\n", $buffers['deleted_files'])
+        implode("\n", $buffers['deleted_files']) . "\n"
       );
     }
   }
@@ -51,10 +52,14 @@ class PackageGenerator {
    * @param array $buffers
    *   An associative array of data such as the contents of deleted_files which
    *   must be deferred from writing to the phar until recursion completes.
+   *
+   * @return array
+   *   $buffers is populated and also returned.
    */
   protected function processTreeDirectory(string $from_version, string $to_version, string $path, array &$buffers) {
-    $on_disk_old = "release_trees/$from_version/$path";
-    $on_disk_new = "release_trees/$to_version/$path";
+    echo "At $path\n";
+    $on_disk_old = "release_trees/$from_version$path";
+    $on_disk_new = "release_trees/$to_version$path";
 
     $old = [];
     if (is_dir($on_disk_old)) {
@@ -86,7 +91,7 @@ class PackageGenerator {
       // It's a regular file replacing a directory.
       // https://github.com/curator-wik/common-docs/blob/master/update_package_structure.md
       // does not require an entry in deleted_files to overwrite the directory.
-      // TODO: write under files/
+      $this->addFileTree(new \SplFileInfo($on_disk_new), "payload/$to_version/files$path");
       return $buffers;
     } else {
       fwrite(STDERR, sprintf("WARNING: ignoring %s because it is of unsupported type.\n", $path));
@@ -101,7 +106,7 @@ class PackageGenerator {
       $old_file_info = $old[$local_path];
 
       if ($new_file_info->isFile() && $old_file_info->isFile()) {
-        $this->diff($old_file_info, $new_file_info, "payload/$to_version/patch_files$path");
+        $this->addDiff($old_file_info, $new_file_info, "payload/$to_version/patch_files$path");
       } else if ($new_file_info->isDir() || $old_file_info->isDir()) {
         $this->processTreeDirectory($from_version, $to_version, $path . DIRECTORY_SEPARATOR . $new_file_info->getFilename(), $buffers);
       } else {
@@ -112,9 +117,22 @@ class PackageGenerator {
         );
       }
     }
+    unset($inode_intersection);
 
-    // TODO: for each item unique to $new[], write under files/
-    // TODO: for each item unique to $old[], add to deletion buffer.
+    // For each item unique to $new[], write it under files/
+    $inode_new = array_udiff_assoc($new, $old, function() { return 0; });
+    foreach ($inode_new as $local_path => $new_file_info) {
+      $this->addFileTree($new_file_info, "payload/$to_version/files$path");
+    }
+    unset($inode_new);
+
+    // For each item unique to $old[], add to deletion buffer.
+    $inode_removed = array_udiff_assoc($old, $new, function() { return 0; });
+    foreach ($inode_removed as $old_file_info) {
+      $buffers['deleted_files'][] = (! empty($path) ? '/' : '') . $old_file_info->getFilename();
+    }
+
+    return $buffers;
   }
 
   /**
@@ -125,7 +143,7 @@ class PackageGenerator {
    * @param string $phar_destination
    *   Path within the phar under which to dump patch data.
    */
-  protected function diff(\SplFileInfo $file_a, \SplFileInfo $file_b, string $phar_destination) {
+  protected function addDiff(\SplFileInfo $file_a, \SplFileInfo $file_b, string $phar_destination) {
     $dmp = new DiffMatchPatch();
     $orig_stream = file_get_contents($file_a->getRealPath());
     $new_stream = file_get_contents($file_b->getRealPath());
@@ -133,7 +151,8 @@ class PackageGenerator {
       return;
     }
 
-    echo "Making patch for $phar_destination/" . $file_b->getFilename() . "\n";
+    $start = microtime(TRUE);
+    echo "Making patch for $phar_destination/" . $file_b->getFilename() . "...";
     $patches = $dmp->patch_make($orig_stream, $new_stream);
 
     // Add .patch file
@@ -152,5 +171,29 @@ class PackageGenerator {
       "$phar_destination/$filename.meta",
       json_encode($meta, JSON_FORCE_OBJECT)
     );
+    $duration = (microtime(TRUE) - $start);
+    printf("done in %.2F\n", $duration);
+  }
+
+  protected function addFileTree(\SplFileInfo $root, string $phar_prefix) {
+    $phar_path = $phar_prefix . '/' . $root->getFilename();
+    if ($root->isFile()) {
+      $this->phar->addFile(
+        $root->getRealPath(),
+        $phar_path
+      );
+    } else if ($root->isDir()) {
+      $this->phar->addEmptyDir($phar_path);
+      $iterator = new \FilesystemIterator($root->getRealPath());
+      foreach ($iterator as $item) {
+        $this->addFileTree($item, $phar_path);
+      }
+    } else {
+      fwrite(STDERR, sprintf("WARNING: ignoring %s because it is of unsupported type \"%s\".\n",
+          $phar_path,
+          $root->getType()
+        )
+      );
+    }
   }
 }
