@@ -17,6 +17,7 @@ to recreate the "new" directory tree given the "old" directory tree.
      each version you included in the `version` and `prev_versions_inorder` file.
      Each release should be rooted at a directory whose name matches the version
      as it appears in these files.
+  5. Run `php src/makeup.php -d /path/to/directory/from/step/1`. Your .zip file will be written to this directory.
 
 ## Known issues
   * This script produces a `____.cpkg.zip` file whose exact name is a function of the metadata files.
