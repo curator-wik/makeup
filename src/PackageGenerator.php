@@ -4,6 +4,7 @@ namespace curator\makeup;
 
 
 use DiffMatchPatch\DiffMatchPatch;
+use Ulrichsg\Getopt\Getopt;
 
 class PackageGenerator {
   /**
@@ -11,12 +12,15 @@ class PackageGenerator {
    */
   protected $phar;
 
-  public function __construct(\PharData $phar) {
+  protected $opts;
+
+  public function __construct(\PharData $phar, Getopt $opts) {
     $this->phar = $phar;
+    $this->opts = $opts;
   }
 
   public function installMetadata() {
-    $copy = ['application', 'component', 'version', 'prev-versions-inorder'];
+    $copy = ['application', 'component', 'version', 'prev-versions-inorder', 'package-format-version'];
     foreach ($copy as $filename) {
       if (is_readable($filename)) {
         $this->phar->addFile($filename);
@@ -106,7 +110,11 @@ class PackageGenerator {
       $old_file_info = $old[$local_path];
 
       if ($new_file_info->isFile() && $old_file_info->isFile()) {
-        $this->addDiff($old_file_info, $new_file_info, "payload/$to_version/patch_files$path");
+        if ($this->opts['experimental-patches']) {
+          $this->addDiff($old_file_info, $new_file_info, "payload/$to_version/patch_files$path");
+        } else if (file_get_contents($old_file_info->getRealPath()) !== file_get_contents($new_file_info->getRealPath())) {
+          $this->addFileTree($new_file_info, "payload/$to_version/files$path");
+        }
       } else if ($new_file_info->isDir() || $old_file_info->isDir()) {
         $this->processTreeDirectory($from_version, $to_version, $path . DIRECTORY_SEPARATOR . $new_file_info->getFilename(), $buffers);
       } else {

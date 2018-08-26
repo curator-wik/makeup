@@ -10,6 +10,8 @@ const VERSION = '0.1.0';
 $opts = new Getopt([
   (new Option('d', 'directory', Getopt::REQUIRED_ARGUMENT))
     ->setDescription('Directory to read package source and release trees from, and write update package to. Defaults to the current directory.'),
+  (new Option(null, 'experimental-patches', Getopt::NO_ARGUMENT))
+    ->setDescription('Generate patches for files that exist in both releases (experimental).'),
   (new Option('v', 'version', Getopt::NO_ARGUMENT))
     ->setDescription('Print version information and exit.'),
   (new Option('h', 'help', Getopt::NO_ARGUMENT))
@@ -51,9 +53,8 @@ list($application, $component) = $util->validateDirectory();
 echo "Directory structure looks ok.\n";
 
 $releases = $util->getReleaseList();
-$phar_filename = sprintf("%s_%s>%s.cpkg.tar",
-  preg_replace('/\s/', '', $application . ($component !== '' ? "_$component" : '')),
-  $releases[0],
+$phar_filename = sprintf("%s-%s.cpkg.zip",
+  preg_replace('/\s/', '', $application),
   end($releases)
 );
 reset($releases);
@@ -61,7 +62,7 @@ reset($releases);
 echo "Generating $phar_filename...\n";
 
 $phar = new \PharData(getcwd() . DIRECTORY_SEPARATOR . $phar_filename);
-$engine = new PackageGenerator($phar);
+$engine = new PackageGenerator($phar, $opts);
 $engine->installMetadata();
 
 while (count($releases) >= 2) {
