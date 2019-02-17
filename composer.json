@@ -15,6 +15,7 @@
       "curator\\makeup\\": "src/"
     }
   },
+  "bin": ["src/makeup.php"],
   "require": {
     "php": ">=7.1.0",
     "yetanotherape/diff-match-patch": "^1.0.2",
