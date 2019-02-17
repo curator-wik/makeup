@@ -64,7 +64,7 @@ class Util {
     foreach ($required_dirs as $dir) {
       if (is_dir($dir)) {
         if (! ($dh = opendir($dir))) {
-          $validation_errors = sprintf('Unable to open directory "$s".', $dir);
+          $validation_errors = sprintf('Unable to open directory "%s".', $dir);
         } else {
           closedir($dh);
         }

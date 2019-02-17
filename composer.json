@@ -17,7 +17,7 @@
   },
   "bin": ["src/makeup.php"],
   "require": {
-    "php": ">=7.1.0",
+    "php": ">=7.0.0",
     "yetanotherape/diff-match-patch": "^1.0.2",
     "ulrichsg/getopt-php": "^2.3",
     "symfony/polyfill-mbstring": "^1.3"
