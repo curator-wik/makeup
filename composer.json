@@ -17,14 +17,8 @@
   },
   "require": {
     "php": ">=7.1.0",
-    "yetanotherape/diff-match-patch": "dev-dev-bugfix",
+    "yetanotherape/diff-match-patch": "^1.0.2",
     "ulrichsg/getopt-php": "^2.3",
     "symfony/polyfill-mbstring": "^1.3"
-  },
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/curator-wik/diff-match-patch"
-    }
-  ]
+  }
 }
