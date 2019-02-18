@@ -8,14 +8,14 @@ use Ulrichsg\Getopt\Getopt;
 
 class PackageGenerator {
   /**
-   * @var \PharData $phar
+   * @var \ZipArchive $zip
    */
-  protected $phar;
+  protected $zip;
 
   protected $opts;
 
-  public function __construct(\PharData $phar, Getopt $opts) {
-    $this->phar = $phar;
+  public function __construct(\ZipArchive $zip, Getopt $opts) {
+    $this->zip = $zip;
     $this->opts = $opts;
   }
 
@@ -23,11 +23,11 @@ class PackageGenerator {
     $copy = ['application', 'component', 'version', 'prev-versions-inorder', 'package-format-version'];
     foreach ($copy as $filename) {
       if (is_readable($filename)) {
-        $this->phar->addFile($filename);
+        $this->zip->addFile($filename);
       }
     }
 
-    $this->phar->addEmptyDir('payload');
+    $this->zip->addEmptyDir('payload');
   }
 
   /**
@@ -36,12 +36,12 @@ class PackageGenerator {
    */
   public function generatePayload(string $from_version, string $to_version) {
     $prefix = "payload/$to_version";
-    $this->phar->addEmptyDir("payload/$to_version");
+    $this->zip->addEmptyDir("payload/$to_version");
 
     $buffers = [];
     $buffers = $this->processTreeDirectory($from_version, $to_version, '', $buffers);
     if (! empty($buffers['deleted_files'])) {
-      $this->phar->addFromString(
+      $this->zip->addFromString(
         "payload/$to_version/deleted_files",
         implode("\n", $buffers['deleted_files']) . "\n"
       );
@@ -165,7 +165,7 @@ class PackageGenerator {
 
     // Add .patch file
     $filename = $file_b->getFilename();
-    $this->phar->addFromString(
+    $this->zip->addFromString(
       "$phar_destination/$filename.patch",
       implode('', $patches)
     );
@@ -175,7 +175,7 @@ class PackageGenerator {
       'initial-md5' => md5($orig_stream),
       'resulting-md5' => md5($new_stream)
     ];
-    $this->phar->addFromString(
+    $this->zip->addFromString(
       "$phar_destination/$filename.meta",
       json_encode($meta, JSON_FORCE_OBJECT)
     );
@@ -186,12 +186,12 @@ class PackageGenerator {
   protected function addFileTree(\SplFileInfo $root, string $phar_prefix) {
     $phar_path = $phar_prefix . '/' . $root->getFilename();
     if ($root->isFile()) {
-      $this->phar->addFile(
+      $this->zip->addFile(
         $root->getRealPath(),
         $phar_path
       );
     } else if ($root->isDir()) {
-      $this->phar->addEmptyDir($phar_path);
+      $this->zip->addEmptyDir($phar_path);
       $iterator = new \FilesystemIterator($root->getRealPath());
       foreach ($iterator as $item) {
         $this->addFileTree($item, $phar_path);

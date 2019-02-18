@@ -72,8 +72,10 @@ reset($releases);
 
 echo "Generating $phar_filename...\n";
 
-$phar = new \PharData(getcwd() . DIRECTORY_SEPARATOR . $phar_filename);
-$engine = new PackageGenerator($phar, $opts);
+//$phar = new \PharData(getcwd() . DIRECTORY_SEPARATOR . $phar_filename);
+$zip = new \ZipArchive();
+$zip->open(getcwd() . DIRECTORY_SEPARATOR . $phar_filename, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+$engine = new PackageGenerator($zip, $opts);
 $engine->installMetadata();
 
 while (count($releases) >= 2) {
@@ -85,3 +87,5 @@ while (count($releases) >= 2) {
 
   array_shift($releases);
 }
+
+$zip->close();
