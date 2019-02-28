@@ -138,7 +138,7 @@ class PackageGenerator {
     $inode_removed = array_udiff_assoc($old, $new, function() { return 0; });
     foreach ($inode_removed as $old_file_info) {
       $entry = $path . (substr($path, -1) !== '/' ? '/' : '') . $old_file_info->getFilename();
-      if (strncmp($entry, '/', 1) === '/') {
+      if (strncmp($entry, '/', 1) === 0) {
         $entry = substr($entry, 1);
       }
       $buffers['deleted_files'][] = $entry;
